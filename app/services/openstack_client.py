@@ -10,7 +10,7 @@ import asyncio
 import logging
 import random
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from app.core.config import settings
@@ -38,11 +38,11 @@ _MOCK_FLAVORS = [
 ]
 
 _MOCK_IMAGES = [
-    {"id": "img-ubuntu-22", "name": "Ubuntu 22.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 15, 12, 0, 0, tzinfo=UTC), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
-    {"id": "img-ubuntu-20", "name": "Ubuntu 20.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 10, 12, 0, 0, tzinfo=UTC), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
-    {"id": "img-centos-9",  "name": "CentOS Stream 9",  "status": "active", "size_bytes": 524288000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 2, 1, 12, 0, 0, tzinfo=UTC), "tags": ["centos"], "properties": {"os_type": "linux", "os_distro": "centos"}},
-    {"id": "img-debian-12", "name": "Debian 12 Bookworm","status": "active", "size_bytes": 419430400, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 20, 12, 0, 0, tzinfo=UTC), "tags": ["debian"], "properties": {"os_type": "linux", "os_distro": "debian"}},
-    {"id": "img-rhel-9",    "name": "RHEL 9.2",         "status": "active", "size_bytes": 786432000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "private","created_at": datetime(2024, 3, 1, 12, 0, 0, tzinfo=UTC), "tags": ["rhel", "enterprise"], "properties": {"os_type": "linux", "os_distro": "rhel"}},
+    {"id": "img-ubuntu-22", "name": "Ubuntu 22.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
+    {"id": "img-ubuntu-20", "name": "Ubuntu 20.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 10, 12, 0, 0, tzinfo=timezone.utc), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
+    {"id": "img-centos-9",  "name": "CentOS Stream 9",  "status": "active", "size_bytes": 524288000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 2, 1, 12, 0, 0, tzinfo=timezone.utc), "tags": ["centos"], "properties": {"os_type": "linux", "os_distro": "centos"}},
+    {"id": "img-debian-12", "name": "Debian 12 Bookworm","status": "active", "size_bytes": 419430400, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 20, 12, 0, 0, tzinfo=timezone.utc), "tags": ["debian"], "properties": {"os_type": "linux", "os_distro": "debian"}},
+    {"id": "img-rhel-9",    "name": "RHEL 9.2",         "status": "active", "size_bytes": 786432000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "private","created_at": datetime(2024, 3, 1, 12, 0, 0, tzinfo=timezone.utc), "tags": ["rhel", "enterprise"], "properties": {"os_type": "linux", "os_distro": "rhel"}},
 ]
 
 # In-memory VM store: id -> dict
@@ -61,7 +61,7 @@ def _make_mock_vm(name: str, flavor_id: str, image_id: str, network_ids: list[st
         raise ImageNotFoundError(image_id)
 
     vm_id = str(uuid.uuid4())
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     networks = {}
     for net_id in network_ids:
         networks[net_id] = [
@@ -146,7 +146,7 @@ class OpenStackClient:
             _MOCK_VMS[vm_id]["task_state"] = None
             _MOCK_VMS[vm_id]["power_state"] = 1
             _MOCK_VMS[vm_id]["progress"] = 100
-            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(UTC)
+            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(timezone.utc)
             logger.info(f"Mock VM {vm_id} transitioned BUILD → ACTIVE")
 
     # ── Connectivity ───────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ class OpenStackClient:
                 raise InvalidVMStateError(vm_id, vm["status"], "SHUTOFF or SUSPENDED")
             vm["status"] = "ACTIVE"
             vm["power_state"] = 1
-            vm["updated_at"] = datetime.now(UTC)
+            vm["updated_at"] = datetime.now(timezone.utc)
             return
 
         nova = await self._get_nova()
@@ -275,7 +275,7 @@ class OpenStackClient:
                 raise InvalidVMStateError(vm_id, vm["status"], "ACTIVE")
             vm["status"] = "SHUTOFF"
             vm["power_state"] = 4
-            vm["updated_at"] = datetime.now(UTC)
+            vm["updated_at"] = datetime.now(timezone.utc)
             return
 
         nova = await self._get_nova()
@@ -293,7 +293,7 @@ class OpenStackClient:
             if vm["status"] != "ACTIVE":
                 raise InvalidVMStateError(vm_id, vm["status"], "ACTIVE")
             vm["status"] = "REBOOT" if reboot_type == "SOFT" else "HARD_REBOOT"
-            vm["updated_at"] = datetime.now(UTC)
+            vm["updated_at"] = datetime.now(timezone.utc)
             asyncio.create_task(self._simulate_reboot(vm_id))
             return
 
@@ -308,7 +308,7 @@ class OpenStackClient:
         await asyncio.sleep(3)
         if vm_id in _MOCK_VMS:
             _MOCK_VMS[vm_id]["status"] = "ACTIVE"
-            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(UTC)
+            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(timezone.utc)
 
     async def resize_vm(self, vm_id: str, flavor_id: str) -> None:
         if self.mock_mode:
@@ -321,7 +321,7 @@ class OpenStackClient:
             if not flavor:
                 raise FlavorNotFoundError(flavor_id)
             vm["status"] = "RESIZE"
-            vm["updated_at"] = datetime.now(UTC)
+            vm["updated_at"] = datetime.now(timezone.utc)
             asyncio.create_task(self._simulate_resize(vm_id, flavor))
             return
 
@@ -340,7 +340,7 @@ class OpenStackClient:
                 "vcpus": flavor["vcpus"], "ram_mb": flavor["ram_mb"], "disk_gb": flavor["disk_gb"],
             }
             _MOCK_VMS[vm_id]["status"] = "VERIFY_RESIZE"
-            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(UTC)
+            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(timezone.utc)
 
     async def confirm_resize_vm(self, vm_id: str) -> None:
         if self.mock_mode:
@@ -350,7 +350,7 @@ class OpenStackClient:
             if vm["status"] != "VERIFY_RESIZE":
                 raise InvalidVMStateError(vm_id, vm["status"], "VERIFY_RESIZE")
             vm["status"] = "ACTIVE"
-            vm["updated_at"] = datetime.now(UTC)
+            vm["updated_at"] = datetime.now(timezone.utc)
             return
 
         nova = await self._get_nova()
@@ -382,7 +382,7 @@ class OpenStackClient:
             if not vm:
                 raise VMNotFoundError(vm_id)
             vm["metadata"].update(metadata)
-            vm["updated_at"] = datetime.now(UTC)
+            vm["updated_at"] = datetime.now(timezone.utc)
             return vm
 
         nova = await self._get_nova()

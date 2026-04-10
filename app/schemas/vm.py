@@ -1,13 +1,13 @@
 """Pydantic schemas for VM lifecycle API request and response models."""
 
 from datetime import datetime
-from enum import StrEnum
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class VMStatus(StrEnum):
+class VMStatus(str, Enum):
     ACTIVE = "ACTIVE"
     BUILD = "BUILD"
     DELETED = "DELETED"
@@ -29,7 +29,7 @@ class VMStatus(StrEnum):
     VERIFY_RESIZE = "VERIFY_RESIZE"
 
 
-class RebootType(StrEnum):
+class RebootType(str, Enum):
     SOFT = "SOFT"
     HARD = "HARD"
 
