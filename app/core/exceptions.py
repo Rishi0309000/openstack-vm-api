@@ -1,6 +1,5 @@
 """Custom exception classes for the OpenStack VM API."""
 
-from typing import Optional
 
 
 class OpenStackAPIError(Exception):
@@ -11,7 +10,7 @@ class OpenStackAPIError(Exception):
         message: str,
         status_code: int = 500,
         error_code: str = "INTERNAL_ERROR",
-        details: Optional[dict] = None,
+        details: dict | None = None,
     ):
         self.message = message
         self.status_code = status_code
