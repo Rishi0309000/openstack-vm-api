@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "openstack-vm-api"
+version = "1.0.0"
+description = "OpenStack VM Lifecycle Management REST API"
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "MIT" }
+
+[project.optional-dependencies]
+openstack = [
+    "keystoneauth1>=5.8.0",
+    "python-novaclient>=18.6.0",
+    "openstacksdk>=3.2.0",
+]
+dev = [
+    "black",
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
