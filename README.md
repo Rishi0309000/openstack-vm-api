@@ -1,6 +1,6 @@
 # OpenStack VM Lifecycle Management API
 
-A production-ready REST API for managing OpenStack Virtual Machine lifecycle operations, built with **FastAPI** and **Python 3.11+**.
+A production-ready REST API for managing OpenStack Virtual Machine lifecycle operations, built with **FastAPI** and **Python 3.10+**.
 
 ---
 
@@ -152,7 +152,7 @@ openstack-vm-api/
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.10+
 - pip
 
 ### 1. Clone and set up
@@ -502,4 +502,3 @@ The roadmap section covers this in detail, but the highest priority items would 
 - **Circuit breaker** — fail fast when OpenStack is degraded rather than hanging
 - **Prometheus metrics** — track request latency and error rates
 - **Structured logging** — JSON logs with correlation IDs for production debugging
-
