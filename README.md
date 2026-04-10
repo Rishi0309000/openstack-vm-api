@@ -418,3 +418,88 @@ Items beyond the assessment time-box, prioritised for a real production service:
 ## License
 
 MIT
+
+---
+
+## Why We Built It This Way
+
+This section explains every major decision made during development — the thinking behind the technology choices, architecture, and implementation approach.
+
+### Why FastAPI over Flask or Django?
+
+Flask and Django are great frameworks but they were not the right fit here. OpenStack API calls are network I/O bound — they involve HTTP requests to Keystone, Nova, and Glance that can take hundreds of milliseconds. FastAPI is built on async Python from the ground up, which means it can handle many concurrent OpenStack requests without blocking. Flask is synchronous by default and would need extra libraries (like gevent) to achieve the same concurrency. Django brings too much overhead for a pure API service.
+
+FastAPI also auto-generates interactive Swagger documentation from the code itself — zero extra work. For an API assessment this is extremely valuable because reviewers can test every endpoint directly in the browser without writing a single line of code.
+
+### Why Pydantic for validation?
+
+Every incoming request is validated automatically against a strict schema before it even reaches our business logic. If someone sends a VM creation request without a name, or with an empty network list, Pydantic catches it and returns a clear 422 error with exactly which field failed and why. Without Pydantic we would have to write defensive checks manually throughout the codebase. Pydantic v2 also generates the OpenAPI schema automatically, which powers the Swagger UI.
+
+### Why a Service Layer pattern?
+
+The `OpenStackClient` class in `app/services/openstack_client.py` is the only place in the entire codebase that knows about OpenStack. The API routers (vms.py, flavors.py, images.py) only call the service — they have no idea whether the data is coming from a real OpenStack cluster or from the in-memory mock.
+
+This matters for three reasons:
+1. **Testability** — tests run in milliseconds without needing real infrastructure
+2. **Replaceability** — switching from Nova to a different backend only requires changing the service, not the API layer
+3. **Maintainability** — OpenStack connection logic, retries, and error handling are in one place
+
+### Why Mock Mode?
+
+A real OpenStack deployment requires DevStack or Packstack, which takes 30-60 minutes to set up and significant compute resources. For a proof-of-concept and assessment, requiring reviewers to set up OpenStack just to run the code would be a barrier. Mock mode provides:
+
+- Realistic in-memory VM storage
+- Simulated state transitions (BUILD → ACTIVE happens automatically after 2 seconds using `asyncio.create_task`)
+- Full error path coverage (404 when VM not found, 409 when wrong state)
+- Quota simulation (max 20 VMs)
+
+Setting `MOCK_MODE=false` and providing real OpenStack credentials switches to the live implementation instantly.
+
+### Why these specific REST conventions?
+
+**Action sub-resources** (`POST /vms/{id}/stop`) instead of `PATCH /vms/{id} {"status": "SHUTOFF"}`:
+- Actions are commands, not state declarations
+- Each action can have its own request body (e.g. reboot needs `reboot_type`)
+- This matches OpenStack's own API design philosophy
+- Clearer intent — "stop this VM" vs "set status to SHUTOFF"
+
+**Versioned prefix** (`/api/v1/`):
+- Allows future breaking changes as `/api/v2/` without affecting existing consumers
+- Industry standard for production APIs
+
+**Consistent error envelope**:
+```json
+{"error": "VM_NOT_FOUND", "message": "VM 'abc' not found", "request_id": "..."}
+```
+Every error across every endpoint returns the same structure. Consumers can write one error handler for all cases.
+
+### Why Request ID and timing headers?
+
+Every response includes `X-Request-ID` and `X-Process-Time` headers. In production systems these are essential for debugging — when a user reports an issue, you can search logs by request ID and find exactly what happened. Process time lets you identify slow endpoints. These are free to add as middleware and provide significant operational value.
+
+### Why pytest-asyncio for testing?
+
+The entire API is async. Standard pytest cannot run async test functions. pytest-asyncio allows writing async test functions naturally and integrates with FastAPI's test client via httpx's `AsyncClient`. All 26 tests run in under 2 seconds with no real infrastructure needed.
+
+### Why Docker?
+
+Docker ensures the API runs identically on any machine — the reviewer's laptop, a CI server, or a production Kubernetes cluster. The Dockerfile uses a non-root user for security, multi-stage dependency caching for fast builds, and a health check so orchestrators know when the service is ready.
+
+### Why GitHub Actions CI?
+
+Every push automatically runs:
+1. Lint check (ruff) — catches code quality issues
+2. Tests on Python 3.11 and 3.12 — ensures compatibility
+3. Docker build + smoke test — ensures the container actually starts
+
+This means the reviewer can see green checkmarks on the repository and know the code is verified, not just "works on my machine".
+
+### What would be next in production?
+
+The roadmap section covers this in detail, but the highest priority items would be:
+- **Authentication** — validate OpenStack tokens on every request via Keystone middleware
+- **Rate limiting** — prevent abuse per tenant
+- **Circuit breaker** — fail fast when OpenStack is degraded rather than hanging
+- **Prometheus metrics** — track request latency and error rates
+- **Structured logging** — JSON logs with correlation IDs for production debugging
+
