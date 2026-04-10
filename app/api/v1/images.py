@@ -1,7 +1,8 @@
 """Images API endpoints."""
 
 from fastapi import APIRouter, Path
-from app.schemas.vm import ImageResponse, ImageListResponse
+
+from app.schemas.vm import ImageListResponse, ImageResponse
 from app.services.openstack_client import openstack_client
 
 router = APIRouter()

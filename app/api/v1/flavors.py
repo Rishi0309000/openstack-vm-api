@@ -1,7 +1,8 @@
 """Flavor and Image API endpoints."""
 
 from fastapi import APIRouter, Path
-from app.schemas.vm import FlavorResponse, FlavorListResponse, ImageResponse, ImageListResponse
+
+from app.schemas.vm import FlavorListResponse, FlavorResponse
 from app.services.openstack_client import openstack_client
 
 # ── Flavors ────────────────────────────────────────────────────────────────────
