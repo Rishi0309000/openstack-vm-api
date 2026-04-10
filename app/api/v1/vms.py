@@ -1,11 +1,16 @@
 """VM lifecycle API endpoints."""
 
-from fastapi import APIRouter, Query, Path, status
-from typing import Optional
+
+from fastapi import APIRouter, Path, Query, status
 
 from app.schemas.vm import (
-    VMCreateRequest, VMRebootRequest, VMResizeRequest, VMMetadataUpdateRequest,
-    VMResponse, VMListResponse, VMActionResponse,
+    VMActionResponse,
+    VMCreateRequest,
+    VMListResponse,
+    VMMetadataUpdateRequest,
+    VMRebootRequest,
+    VMResizeRequest,
+    VMResponse,
 )
 from app.services.openstack_client import openstack_client
 
@@ -14,8 +19,8 @@ router = APIRouter()
 
 @router.get("", response_model=VMListResponse, summary="List all VMs")
 async def list_vms(
-    status: Optional[str] = Query(None, description="Filter by VM status (e.g. ACTIVE, SHUTOFF)"),
-    search: Optional[str] = Query(None, description="Filter by name substring"),
+    status: str | None = Query(None, description="Filter by VM status (e.g. ACTIVE, SHUTOFF)"),
+    search: str | None = Query(None, description="Filter by name substring"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ):

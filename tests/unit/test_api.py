@@ -3,9 +3,10 @@ Unit tests for the OpenStack VM Lifecycle API.
 Run with: pytest tests/ -v
 """
 
+
 import pytest
-import asyncio
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 from app.services.openstack_client import _MOCK_VMS
 

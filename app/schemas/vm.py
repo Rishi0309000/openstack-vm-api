@@ -1,12 +1,13 @@
 """Pydantic schemas for VM lifecycle API request and response models."""
 
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator
 
 
-class VMStatus(str, Enum):
+class VMStatus(StrEnum):
     ACTIVE = "ACTIVE"
     BUILD = "BUILD"
     DELETED = "DELETED"
@@ -28,7 +29,7 @@ class VMStatus(str, Enum):
     VERIFY_RESIZE = "VERIFY_RESIZE"
 
 
-class RebootType(str, Enum):
+class RebootType(StrEnum):
     SOFT = "SOFT"
     HARD = "HARD"
 
@@ -38,8 +39,8 @@ class RebootType(str, Enum):
 class NetworkAddress(BaseModel):
     ip_address: str
     ip_version: int = Field(ge=4, le=6)
-    mac_address: Optional[str] = None
-    network_type: Optional[str] = None
+    mac_address: str | None = None
+    network_type: str | None = None
 
 
 class FlavorSummary(BaseModel):
@@ -66,12 +67,12 @@ class VMCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="VM display name")
     flavor_id: str = Field(..., description="ID of the flavor (CPU/RAM/disk profile)")
     image_id: str = Field(..., description="ID of the base OS image")
-    network_ids: List[str] = Field(..., min_length=1, description="One or more network IDs to attach")
-    key_name: Optional[str] = Field(None, description="SSH keypair name for access")
-    security_groups: List[str] = Field(default=["default"], description="Security group names")
-    user_data: Optional[str] = Field(None, description="Base64-encoded cloud-init user data")
-    availability_zone: Optional[str] = Field(None, description="Target availability zone")
-    metadata: Optional[Dict[str, str]] = Field(default_factory=dict, description="Arbitrary key-value metadata")
+    network_ids: list[str] = Field(..., min_length=1, description="One or more network IDs to attach")
+    key_name: str | None = Field(None, description="SSH keypair name for access")
+    security_groups: list[str] = Field(default=["default"], description="Security group names")
+    user_data: str | None = Field(None, description="Base64-encoded cloud-init user data")
+    availability_zone: str | None = Field(None, description="Target availability zone")
+    metadata: dict[str, str] | None = Field(default_factory=dict, description="Arbitrary key-value metadata")
 
     @field_validator("name")
     @classmethod
@@ -111,7 +112,7 @@ class VMResizeRequest(BaseModel):
 
 
 class VMMetadataUpdateRequest(BaseModel):
-    metadata: Dict[str, str] = Field(..., description="Metadata key-value pairs to set/update")
+    metadata: dict[str, str] = Field(..., description="Metadata key-value pairs to set/update")
 
     model_config = {"json_schema_extra": {"example": {"metadata": {"env": "staging", "version": "2.1"}}}}
 
@@ -124,25 +125,25 @@ class VMResponse(BaseModel):
     status: VMStatus
     flavor: FlavorSummary
     image: ImageSummary
-    networks: Dict[str, List[NetworkAddress]] = Field(default_factory=dict)
-    key_name: Optional[str] = None
-    security_groups: List[str] = Field(default_factory=list)
-    availability_zone: Optional[str] = None
-    metadata: Dict[str, str] = Field(default_factory=dict)
+    networks: dict[str, list[NetworkAddress]] = Field(default_factory=dict)
+    key_name: str | None = None
+    security_groups: list[str] = Field(default_factory=list)
+    availability_zone: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    host: Optional[str] = None
-    tenant_id: Optional[str] = None
-    user_id: Optional[str] = None
-    power_state: Optional[int] = None
-    task_state: Optional[str] = None
-    progress: Optional[int] = Field(None, ge=0, le=100)
+    updated_at: datetime | None = None
+    host: str | None = None
+    tenant_id: str | None = None
+    user_id: str | None = None
+    power_state: int | None = None
+    task_state: str | None = None
+    progress: int | None = Field(None, ge=0, le=100)
 
     model_config = {"from_attributes": True}
 
 
 class VMListResponse(BaseModel):
-    vms: List[VMResponse]
+    vms: list[VMResponse]
     total: int
     page: int
     page_size: int
@@ -166,12 +167,12 @@ class FlavorResponse(BaseModel):
     swap_mb: int = 0
     rxtx_factor: float = 1.0
     is_public: bool = True
-    description: Optional[str] = None
-    extra_specs: Dict[str, str] = Field(default_factory=dict)
+    description: str | None = None
+    extra_specs: dict[str, str] = Field(default_factory=dict)
 
 
 class FlavorListResponse(BaseModel):
-    flavors: List[FlavorResponse]
+    flavors: list[FlavorResponse]
     total: int
 
 
@@ -179,27 +180,27 @@ class ImageResponse(BaseModel):
     id: str
     name: str
     status: str
-    size_bytes: Optional[int] = None
+    size_bytes: int | None = None
     min_disk_gb: int = 0
     min_ram_mb: int = 0
-    disk_format: Optional[str] = None
-    container_format: Optional[str] = None
+    disk_format: str | None = None
+    container_format: str | None = None
     visibility: str = "public"
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    tags: List[str] = Field(default_factory=list)
-    properties: Dict[str, Any] = Field(default_factory=dict)
+    updated_at: datetime | None = None
+    tags: list[str] = Field(default_factory=list)
+    properties: dict[str, Any] = Field(default_factory=dict)
 
 
 class ImageListResponse(BaseModel):
-    images: List[ImageResponse]
+    images: list[ImageResponse]
     total: int
 
 
 class ErrorResponse(BaseModel):
     error: str
     message: str
-    request_id: Optional[str] = None
+    request_id: str | None = None
 
 
 class HealthResponse(BaseModel):

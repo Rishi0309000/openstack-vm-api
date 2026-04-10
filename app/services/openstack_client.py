@@ -7,20 +7,20 @@ Supports two modes:
 """
 
 import asyncio
-import uuid
-import random
-from datetime import datetime, timedelta, timezone
-from typing import Optional, List, Dict, Any
 import logging
+import random
+import uuid
+from datetime import UTC, datetime
+from typing import Any
 
 from app.core.config import settings
 from app.core.exceptions import (
-    VMNotFoundError,
     FlavorNotFoundError,
     ImageNotFoundError,
     InvalidVMStateError,
     OpenStackConnectionError,
     QuotaExceededError,
+    VMNotFoundError,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,21 +38,21 @@ _MOCK_FLAVORS = [
 ]
 
 _MOCK_IMAGES = [
-    {"id": "img-ubuntu-22", "name": "Ubuntu 22.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
-    {"id": "img-ubuntu-20", "name": "Ubuntu 20.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 10, 12, 0, 0, tzinfo=timezone.utc), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
-    {"id": "img-centos-9",  "name": "CentOS Stream 9",  "status": "active", "size_bytes": 524288000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 2, 1, 12, 0, 0, tzinfo=timezone.utc), "tags": ["centos"], "properties": {"os_type": "linux", "os_distro": "centos"}},
-    {"id": "img-debian-12", "name": "Debian 12 Bookworm","status": "active", "size_bytes": 419430400, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 20, 12, 0, 0, tzinfo=timezone.utc), "tags": ["debian"], "properties": {"os_type": "linux", "os_distro": "debian"}},
-    {"id": "img-rhel-9",    "name": "RHEL 9.2",         "status": "active", "size_bytes": 786432000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "private","created_at": datetime(2024, 3, 1, 12, 0, 0, tzinfo=timezone.utc), "tags": ["rhel", "enterprise"], "properties": {"os_type": "linux", "os_distro": "rhel"}},
+    {"id": "img-ubuntu-22", "name": "Ubuntu 22.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 15, 12, 0, 0, tzinfo=UTC), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
+    {"id": "img-ubuntu-20", "name": "Ubuntu 20.04 LTS", "status": "active", "size_bytes": 629145600, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 10, 12, 0, 0, tzinfo=UTC), "tags": ["ubuntu", "lts"], "properties": {"os_type": "linux", "os_distro": "ubuntu"}},
+    {"id": "img-centos-9",  "name": "CentOS Stream 9",  "status": "active", "size_bytes": 524288000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 2, 1, 12, 0, 0, tzinfo=UTC), "tags": ["centos"], "properties": {"os_type": "linux", "os_distro": "centos"}},
+    {"id": "img-debian-12", "name": "Debian 12 Bookworm","status": "active", "size_bytes": 419430400, "min_disk_gb": 8,  "min_ram_mb": 512,  "disk_format": "qcow2", "container_format": "bare", "visibility": "public", "created_at": datetime(2024, 1, 20, 12, 0, 0, tzinfo=UTC), "tags": ["debian"], "properties": {"os_type": "linux", "os_distro": "debian"}},
+    {"id": "img-rhel-9",    "name": "RHEL 9.2",         "status": "active", "size_bytes": 786432000, "min_disk_gb": 10, "min_ram_mb": 1024, "disk_format": "qcow2", "container_format": "bare", "visibility": "private","created_at": datetime(2024, 3, 1, 12, 0, 0, tzinfo=UTC), "tags": ["rhel", "enterprise"], "properties": {"os_type": "linux", "os_distro": "rhel"}},
 ]
 
 # In-memory VM store: id -> dict
-_MOCK_VMS: Dict[str, Dict[str, Any]] = {}
+_MOCK_VMS: dict[str, dict[str, Any]] = {}
 
 
-def _make_mock_vm(name: str, flavor_id: str, image_id: str, network_ids: List[str],
-                   key_name: Optional[str], security_groups: List[str],
-                   user_data: Optional[str], availability_zone: Optional[str],
-                   metadata: Dict[str, str]) -> Dict[str, Any]:
+def _make_mock_vm(name: str, flavor_id: str, image_id: str, network_ids: list[str],
+                   key_name: str | None, security_groups: list[str],
+                   user_data: str | None, availability_zone: str | None,
+                   metadata: dict[str, str]) -> dict[str, Any]:
     flavor = next((f for f in _MOCK_FLAVORS if f["id"] == flavor_id), None)
     if not flavor:
         raise FlavorNotFoundError(flavor_id)
@@ -61,7 +61,7 @@ def _make_mock_vm(name: str, flavor_id: str, image_id: str, network_ids: List[st
         raise ImageNotFoundError(image_id)
 
     vm_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     networks = {}
     for net_id in network_ids:
         networks[net_id] = [
@@ -146,7 +146,7 @@ class OpenStackClient:
             _MOCK_VMS[vm_id]["task_state"] = None
             _MOCK_VMS[vm_id]["power_state"] = 1
             _MOCK_VMS[vm_id]["progress"] = 100
-            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(timezone.utc)
+            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(UTC)
             logger.info(f"Mock VM {vm_id} transitioned BUILD → ACTIVE")
 
     # ── Connectivity ───────────────────────────────────────────────────────────
@@ -163,8 +163,8 @@ class OpenStackClient:
 
     # ── VM operations ──────────────────────────────────────────────────────────
 
-    async def list_vms(self, status: Optional[str] = None, page: int = 1,
-                        page_size: int = 20, search: Optional[str] = None) -> Dict[str, Any]:
+    async def list_vms(self, status: str | None = None, page: int = 1,
+                        page_size: int = 20, search: str | None = None) -> dict[str, Any]:
         if self.mock_mode:
             vms = list(_MOCK_VMS.values())
             if status:
@@ -197,7 +197,7 @@ class OpenStackClient:
             "has_next": False,
         }
 
-    async def get_vm(self, vm_id: str) -> Dict[str, Any]:
+    async def get_vm(self, vm_id: str) -> dict[str, Any]:
         if self.mock_mode:
             vm = _MOCK_VMS.get(vm_id)
             if not vm:
@@ -212,11 +212,11 @@ class OpenStackClient:
             raise VMNotFoundError(vm_id)
 
     async def create_vm(self, name: str, flavor_id: str, image_id: str,
-                         network_ids: List[str], key_name: Optional[str] = None,
-                         security_groups: Optional[List[str]] = None,
-                         user_data: Optional[str] = None,
-                         availability_zone: Optional[str] = None,
-                         metadata: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+                         network_ids: list[str], key_name: str | None = None,
+                         security_groups: list[str] | None = None,
+                         user_data: str | None = None,
+                         availability_zone: str | None = None,
+                         metadata: dict[str, str] | None = None) -> dict[str, Any]:
         security_groups = security_groups or ["default"]
         metadata = metadata or {}
 
@@ -256,7 +256,7 @@ class OpenStackClient:
                 raise InvalidVMStateError(vm_id, vm["status"], "SHUTOFF or SUSPENDED")
             vm["status"] = "ACTIVE"
             vm["power_state"] = 1
-            vm["updated_at"] = datetime.now(timezone.utc)
+            vm["updated_at"] = datetime.now(UTC)
             return
 
         nova = await self._get_nova()
@@ -275,7 +275,7 @@ class OpenStackClient:
                 raise InvalidVMStateError(vm_id, vm["status"], "ACTIVE")
             vm["status"] = "SHUTOFF"
             vm["power_state"] = 4
-            vm["updated_at"] = datetime.now(timezone.utc)
+            vm["updated_at"] = datetime.now(UTC)
             return
 
         nova = await self._get_nova()
@@ -293,7 +293,7 @@ class OpenStackClient:
             if vm["status"] != "ACTIVE":
                 raise InvalidVMStateError(vm_id, vm["status"], "ACTIVE")
             vm["status"] = "REBOOT" if reboot_type == "SOFT" else "HARD_REBOOT"
-            vm["updated_at"] = datetime.now(timezone.utc)
+            vm["updated_at"] = datetime.now(UTC)
             asyncio.create_task(self._simulate_reboot(vm_id))
             return
 
@@ -308,7 +308,7 @@ class OpenStackClient:
         await asyncio.sleep(3)
         if vm_id in _MOCK_VMS:
             _MOCK_VMS[vm_id]["status"] = "ACTIVE"
-            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(timezone.utc)
+            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(UTC)
 
     async def resize_vm(self, vm_id: str, flavor_id: str) -> None:
         if self.mock_mode:
@@ -321,7 +321,7 @@ class OpenStackClient:
             if not flavor:
                 raise FlavorNotFoundError(flavor_id)
             vm["status"] = "RESIZE"
-            vm["updated_at"] = datetime.now(timezone.utc)
+            vm["updated_at"] = datetime.now(UTC)
             asyncio.create_task(self._simulate_resize(vm_id, flavor))
             return
 
@@ -332,7 +332,7 @@ class OpenStackClient:
             raise VMNotFoundError(vm_id)
         server.resize(flavor_id)
 
-    async def _simulate_resize(self, vm_id: str, flavor: Dict):
+    async def _simulate_resize(self, vm_id: str, flavor: dict):
         await asyncio.sleep(3)
         if vm_id in _MOCK_VMS:
             _MOCK_VMS[vm_id]["flavor"] = {
@@ -340,7 +340,7 @@ class OpenStackClient:
                 "vcpus": flavor["vcpus"], "ram_mb": flavor["ram_mb"], "disk_gb": flavor["disk_gb"],
             }
             _MOCK_VMS[vm_id]["status"] = "VERIFY_RESIZE"
-            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(timezone.utc)
+            _MOCK_VMS[vm_id]["updated_at"] = datetime.now(UTC)
 
     async def confirm_resize_vm(self, vm_id: str) -> None:
         if self.mock_mode:
@@ -350,7 +350,7 @@ class OpenStackClient:
             if vm["status"] != "VERIFY_RESIZE":
                 raise InvalidVMStateError(vm_id, vm["status"], "VERIFY_RESIZE")
             vm["status"] = "ACTIVE"
-            vm["updated_at"] = datetime.now(timezone.utc)
+            vm["updated_at"] = datetime.now(UTC)
             return
 
         nova = await self._get_nova()
@@ -376,13 +376,13 @@ class OpenStackClient:
             raise VMNotFoundError(vm_id)
         server.delete()
 
-    async def update_vm_metadata(self, vm_id: str, metadata: Dict[str, str]) -> Dict[str, Any]:
+    async def update_vm_metadata(self, vm_id: str, metadata: dict[str, str]) -> dict[str, Any]:
         if self.mock_mode:
             vm = _MOCK_VMS.get(vm_id)
             if not vm:
                 raise VMNotFoundError(vm_id)
             vm["metadata"].update(metadata)
-            vm["updated_at"] = datetime.now(timezone.utc)
+            vm["updated_at"] = datetime.now(UTC)
             return vm
 
         nova = await self._get_nova()
@@ -395,14 +395,14 @@ class OpenStackClient:
 
     # ── Flavor operations ──────────────────────────────────────────────────────
 
-    async def list_flavors(self) -> List[Dict[str, Any]]:
+    async def list_flavors(self) -> list[dict[str, Any]]:
         if self.mock_mode:
             return _MOCK_FLAVORS
 
         nova = await self._get_nova()
         return [self._serialize_flavor(f) for f in nova.flavors.list()]
 
-    async def get_flavor(self, flavor_id: str) -> Dict[str, Any]:
+    async def get_flavor(self, flavor_id: str) -> dict[str, Any]:
         if self.mock_mode:
             flavor = next((f for f in _MOCK_FLAVORS if f["id"] == flavor_id), None)
             if not flavor:
@@ -417,14 +417,14 @@ class OpenStackClient:
 
     # ── Image operations ───────────────────────────────────────────────────────
 
-    async def list_images(self) -> List[Dict[str, Any]]:
+    async def list_images(self) -> list[dict[str, Any]]:
         if self.mock_mode:
             return _MOCK_IMAGES
 
         nova = await self._get_nova()
         return [self._serialize_image(i) for i in nova.glance.list()]
 
-    async def get_image(self, image_id: str) -> Dict[str, Any]:
+    async def get_image(self, image_id: str) -> dict[str, Any]:
         if self.mock_mode:
             image = next((i for i in _MOCK_IMAGES if i["id"] == image_id), None)
             if not image:
@@ -439,7 +439,7 @@ class OpenStackClient:
 
     # ── Serializers (real mode) ────────────────────────────────────────────────
 
-    def _serialize_server(self, server) -> Dict[str, Any]:
+    def _serialize_server(self, server) -> dict[str, Any]:
         networks = {}
         for net_name, addresses in getattr(server, "addresses", {}).items():
             networks[net_name] = [
@@ -478,7 +478,7 @@ class OpenStackClient:
             "progress": getattr(server, "progress", None),
         }
 
-    def _serialize_flavor(self, flavor) -> Dict[str, Any]:
+    def _serialize_flavor(self, flavor) -> dict[str, Any]:
         return {
             "id": flavor.id,
             "name": flavor.name,
@@ -491,7 +491,7 @@ class OpenStackClient:
             "is_public": getattr(flavor, "os-flavor-access:is_public", True),
         }
 
-    def _serialize_image(self, image) -> Dict[str, Any]:
+    def _serialize_image(self, image) -> dict[str, Any]:
         return {
             "id": image.id,
             "name": image.name,

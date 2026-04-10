@@ -1,7 +1,7 @@
 """Application configuration using Pydantic Settings."""
 
+
 from pydantic_settings import BaseSettings
-from typing import List
 
 
 class Settings(BaseSettings):
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "OpenStack VM Lifecycle API"
     VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/api/v1"
-    ALLOWED_ORIGINS: List[str] = ["*"]
+    ALLOWED_ORIGINS: list[str] = ["*"]
 
     # OpenStack Auth
     OS_AUTH_URL: str = "http://localhost:5000/v3"
